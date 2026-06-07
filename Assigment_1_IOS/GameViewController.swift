@@ -25,15 +25,30 @@ class GameViewController: UIViewController {
     private var timer: Timer?
     private var currentUserCard: PlayingCard?
     private var currentPcCard: PlayingCard?
+    private var pendingWorkItem: DispatchWorkItem?
+    private var isPaused = false
+    private var isWaitingToStartNextRound = false
+    private var isWaitingToShowSummary = false
+    private var didFinishGame = false
 
     private let roundLabel = UILabel()
     private let scoreLabel = UILabel()
     private let timerLabel = UILabel()
+    private let mainStackView = UIStackView()
     private let playersStackView = UIStackView()
     private let userAreaView = UIView()
     private let pcAreaView = UIView()
     private let userCardView = CardView()
     private let pcCardView = CardView()
+    private var playersStackHeightConstraint: NSLayoutConstraint?
+    private var userCardWidthConstraint: NSLayoutConstraint?
+    private var userCardHeightConstraint: NSLayoutConstraint?
+    private var pcCardWidthConstraint: NSLayoutConstraint?
+    private var pcCardHeightConstraint: NSLayoutConstraint?
+    private var userTitleHeightConstraint: NSLayoutConstraint?
+    private var pcTitleHeightConstraint: NSLayoutConstraint?
+    private var playerAreaStackViews: [UIStackView] = []
+    private let audioController = GameAudioController.shared
 
     private let deck: [PlayingCard] = {
         let ranks: [(String, Int)] = [
@@ -56,6 +71,7 @@ class GameViewController: UIViewController {
         view.backgroundColor = .systemBackground
         navigationItem.hidesBackButton = true
         setupViews()
+        setupLifecycleNotifications()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -63,21 +79,43 @@ class GameViewController: UIViewController {
 
         if currentRound == 0 {
             startGame()
+        } else if isPaused && !didFinishGame {
+            resumeGame()
         }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        pauseGame()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateLayoutForCurrentSize()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
         timer?.invalidate()
+        pendingWorkItem?.cancel()
+        audioController.stopMusic()
     }
 
     private func setupViews() {
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+
         roundLabel.font = .systemFont(ofSize: 22, weight: .bold)
         roundLabel.textAlignment = .center
+        roundLabel.textColor = .label
 
         scoreLabel.font = .systemFont(ofSize: 18, weight: .semibold)
         scoreLabel.textAlignment = .center
         scoreLabel.numberOfLines = 0
+        scoreLabel.textColor = .label
 
         timerLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         timerLabel.textAlignment = .center
@@ -94,7 +132,7 @@ class GameViewController: UIViewController {
         timerStackView.spacing = 8
         timerStackView.translatesAutoresizingMaskIntoConstraints = false
 
-        setupPlayerArea(userAreaView, title: "\(userName)\n\(userSide.rawValue)", cardView: userCardView)
+        setupPlayerArea(userAreaView, title: userName, cardView: userCardView)
         setupPlayerArea(pcAreaView, title: "PC", cardView: pcCardView)
 
         playersStackView.axis = .horizontal
@@ -110,29 +148,45 @@ class GameViewController: UIViewController {
             playersStackView.addArrangedSubview(userAreaView)
         }
 
-        let mainStackView = UIStackView(arrangedSubviews: [
-            roundLabel,
-            scoreLabel,
-            timerStackView,
-            playersStackView
-        ])
+        mainStackView.addArrangedSubview(roundLabel)
+        mainStackView.addArrangedSubview(scoreLabel)
+        mainStackView.addArrangedSubview(timerStackView)
+        mainStackView.addArrangedSubview(playersStackView)
         mainStackView.axis = .vertical
         mainStackView.alignment = .center
         mainStackView.spacing = 24
         mainStackView.translatesAutoresizingMaskIntoConstraints = false
 
-        view.addSubview(mainStackView)
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(mainStackView)
+
+        playersStackHeightConstraint = playersStackView.heightAnchor.constraint(equalToConstant: 300)
 
         NSLayoutConstraint.activate([
-            mainStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            mainStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            mainStackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
+            scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            contentView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
+
+            mainStackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            mainStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            mainStackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            mainStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            mainStackView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             roundLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
             scoreLabel.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
             timerImageView.widthAnchor.constraint(equalToConstant: 32),
             timerImageView.heightAnchor.constraint(equalToConstant: 32),
             playersStackView.widthAnchor.constraint(equalTo: mainStackView.widthAnchor),
-            playersStackView.heightAnchor.constraint(equalToConstant: 300)
+            playersStackHeightConstraint!
         ])
     }
 
@@ -142,6 +196,7 @@ class GameViewController: UIViewController {
         titleLabel.font = .systemFont(ofSize: 18, weight: .bold)
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 0
+        titleLabel.textColor = .label
 
         cardView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -150,35 +205,69 @@ class GameViewController: UIViewController {
         stackView.alignment = .center
         stackView.spacing = 16
         stackView.translatesAutoresizingMaskIntoConstraints = false
+        playerAreaStackViews.append(stackView)
 
         areaView.addSubview(stackView)
+
+        let cardWidthConstraint = cardView.widthAnchor.constraint(equalToConstant: 130)
+        let cardHeightConstraint = cardView.heightAnchor.constraint(equalToConstant: 190)
+        let titleHeightConstraint = titleLabel.heightAnchor.constraint(equalToConstant: 30)
+        if cardView === userCardView {
+            userCardWidthConstraint = cardWidthConstraint
+            userCardHeightConstraint = cardHeightConstraint
+            userTitleHeightConstraint = titleHeightConstraint
+        } else {
+            pcCardWidthConstraint = cardWidthConstraint
+            pcCardHeightConstraint = cardHeightConstraint
+            pcTitleHeightConstraint = titleHeightConstraint
+        }
 
         NSLayoutConstraint.activate([
             stackView.leadingAnchor.constraint(equalTo: areaView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: areaView.trailingAnchor),
             stackView.topAnchor.constraint(equalTo: areaView.topAnchor),
-            titleLabel.heightAnchor.constraint(equalToConstant: 50),
-            cardView.widthAnchor.constraint(equalTo: areaView.widthAnchor, multiplier: 0.9),
-            cardView.heightAnchor.constraint(equalToConstant: 190)
+            stackView.bottomAnchor.constraint(lessThanOrEqualTo: areaView.bottomAnchor),
+            titleHeightConstraint,
+            cardWidthConstraint,
+            cardHeightConstraint
         ])
     }
 
+    // Starts a fresh game every time a new GameViewController is opened.
     private func startGame() {
         timer?.invalidate()
+        pendingWorkItem?.cancel()
+        didFinishGame = false
+        isPaused = false
+        isWaitingToStartNextRound = false
+        isWaitingToShowSummary = false
         userScore = 0
         pcScore = 0
         currentRound = 1
+        audioController.startMusic()
         startRound()
     }
 
+    // Deals visible cards first; scoring happens only after the countdown reaches zero.
     private func startRound() {
+        guard !didFinishGame else { return }
+
         countdown = 3
+        isWaitingToStartNextRound = false
         dealCardsForCurrentRound()
         updateLabels()
+        startCountdownTimer()
+    }
 
+    private func startCountdownTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self else { return }
+            guard !self.isPaused else {
+                timer.invalidate()
+                return
+            }
+
             self.countdown -= 1
 
             if self.countdown == 0 {
@@ -190,18 +279,25 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Compares the two currently displayed cards and schedules the next step.
     private func finishRound() {
+        guard !didFinishGame else { return }
+
         compareCurrentCards()
         updateLabels()
 
         if currentRound == totalRounds {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.showSummary()
+            didFinishGame = true
+            isWaitingToShowSummary = true
+            audioController.stopMusic()
+            audioController.playGameFinishedSound()
+            scheduleAfterDelay(1.0) { [weak self] in
+                self?.showSummary()
             }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                self.currentRound += 1
-                self.startRound()
+            isWaitingToStartNextRound = true
+            scheduleAfterDelay(0.7) { [weak self] in
+                self?.moveToNextRound()
             }
         }
     }
@@ -213,6 +309,7 @@ class GameViewController: UIViewController {
 
         currentUserCard = userCard
         currentPcCard = pcCard
+        audioController.playCardSound()
         userCardView.show(card: userCard)
         pcCardView.show(card: pcCard)
     }
@@ -237,6 +334,13 @@ class GameViewController: UIViewController {
 
     private func showSummary() {
         timer?.invalidate()
+        pendingWorkItem?.cancel()
+        audioController.stopMusic()
+        isWaitingToShowSummary = false
+
+        if navigationController?.topViewController is SummaryViewController {
+            return
+        }
 
         guard let summaryViewController = storyboard?.instantiateViewController(withIdentifier: "SummaryViewController") as? SummaryViewController else {
             return
@@ -245,13 +349,130 @@ class GameViewController: UIViewController {
         summaryViewController.userName = userName
         summaryViewController.userScore = userScore
         summaryViewController.pcScore = pcScore
-        navigationController?.pushViewController(summaryViewController, animated: true)
+
+        if var viewControllers = navigationController?.viewControllers {
+            viewControllers.removeAll { $0 is SummaryViewController }
+            viewControllers.append(summaryViewController)
+            navigationController?.setViewControllers(viewControllers, animated: true)
+        }
+    }
+
+    private func moveToNextRound() {
+        guard !isPaused else { return }
+
+        isWaitingToStartNextRound = false
+        currentRound += 1
+        startRound()
+    }
+
+    private func scheduleAfterDelay(_ delay: TimeInterval, action: @escaping () -> Void) {
+        pendingWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self, !self.isPaused else { return }
+            action()
+        }
+
+        pendingWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    // Pauses gameplay state when the app backgrounds or this screen is no longer visible.
+    private func pauseGame() {
+        guard currentRound > 0 else {
+            audioController.stopMusic()
+            return
+        }
+
+        isPaused = true
+        timer?.invalidate()
+        pendingWorkItem?.cancel()
+        if didFinishGame {
+            audioController.stopMusic()
+        } else {
+            audioController.pauseMusic()
+        }
+    }
+
+    // Resumes the exact pending state: countdown, next round delay, or final summary delay.
+    private func resumeGame() {
+        guard currentRound > 0 else { return }
+
+        isPaused = false
+
+        if isWaitingToShowSummary {
+            showSummary()
+        } else if isWaitingToStartNextRound {
+            audioController.startMusic()
+            moveToNextRound()
+        } else if countdown > 0 {
+            audioController.startMusic()
+            updateLabels()
+            startCountdownTimer()
+        }
+    }
+
+    private func setupLifecycleNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func appDidEnterBackground() {
+        pauseGame()
+    }
+
+    @objc private func appDidBecomeActive() {
+        if navigationController?.topViewController === self {
+            resumeGame()
+        }
+    }
+
+    private func updateLayoutForCurrentSize() {
+        let isLandscape = view.bounds.width > view.bounds.height
+        let safeWidth = view.safeAreaLayoutGuide.layoutFrame.width
+        let safeHeight = view.safeAreaLayoutGuide.layoutFrame.height
+
+        mainStackView.spacing = isLandscape ? 4 : 24
+        playersStackView.spacing = isLandscape ? 14 : 16
+        playerAreaStackViews.forEach { $0.spacing = isLandscape ? 6 : 16 }
+
+        if isLandscape {
+            let titleHeight: CGFloat = 30
+            let playerCardSpacing: CGFloat = 6
+            let verticalMargins: CGFloat = 16
+            let topContentHeight: CGFloat = 26 + 22 + 32 + (mainStackView.spacing * 3)
+            let availableCardHeight = max(110, safeHeight - verticalMargins - topContentHeight - titleHeight - playerCardSpacing)
+
+            let horizontalPadding: CGFloat = 72
+            let maxCardWidth = max(80, (safeWidth - horizontalPadding - playersStackView.spacing) / 2)
+            let maxCardHeightFromWidth = maxCardWidth * 1.5
+            let cardHeight = min(availableCardHeight, maxCardHeightFromWidth, 190)
+            let cardWidth = cardHeight * 2.0 / 3.0
+            let playersHeight = titleHeight + playerCardSpacing + cardHeight
+
+            userTitleHeightConstraint?.constant = titleHeight
+            pcTitleHeightConstraint?.constant = titleHeight
+            userCardWidthConstraint?.constant = cardWidth
+            userCardHeightConstraint?.constant = cardHeight
+            pcCardWidthConstraint?.constant = cardWidth
+            pcCardHeightConstraint?.constant = cardHeight
+            playersStackHeightConstraint?.constant = playersHeight
+        } else {
+            userTitleHeightConstraint?.constant = 30
+            pcTitleHeightConstraint?.constant = 30
+            userCardWidthConstraint?.constant = 130
+            userCardHeightConstraint?.constant = 190
+            pcCardWidthConstraint?.constant = 130
+            pcCardHeightConstraint?.constant = 190
+            playersStackHeightConstraint?.constant = 300
+        }
     }
 }
 
 class CardView: UIView {
     private let rankLabel = UILabel()
     private let suitLabel = UILabel()
+    private var currentSuit: String?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -263,11 +484,16 @@ class CardView: UIView {
         setupViews()
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateFontsForCurrentSize()
+        updateColors()
+    }
+
     private func setupViews() {
-        backgroundColor = .secondarySystemBackground
         layer.cornerRadius = 16
         layer.borderWidth = 2
-        layer.borderColor = UIColor.label.cgColor
+        updateColors()
 
         rankLabel.font = .systemFont(ofSize: 54, weight: .bold)
         rankLabel.textAlignment = .center
@@ -291,12 +517,34 @@ class CardView: UIView {
 
     func show(card: PlayingCard) {
         let updateCard = {
+            self.currentSuit = card.suit
             self.rankLabel.text = card.rank
             self.suitLabel.text = card.suit
-            self.suitLabel.textColor = card.suit == "♥" || card.suit == "♦" ? .systemRed : .label
-            self.rankLabel.textColor = self.suitLabel.textColor
+            self.updateColors()
         }
 
         UIView.transition(with: self, duration: 0.35, options: .transitionFlipFromLeft, animations: updateCard)
+    }
+
+    private func updateFontsForCurrentSize() {
+        let rankSize = max(26, min(54, bounds.height * 0.28))
+        let suitSize = max(24, min(48, bounds.height * 0.25))
+        rankLabel.font = .systemFont(ofSize: rankSize, weight: .bold)
+        suitLabel.font = .systemFont(ofSize: suitSize, weight: .bold)
+    }
+
+    private func updateColors() {
+        backgroundColor = .secondarySystemBackground
+        layer.borderColor = UIColor.label.cgColor
+
+        let textColor: UIColor
+        if currentSuit == "♥" || currentSuit == "♦" {
+            textColor = .systemRed
+        } else {
+            textColor = .label
+        }
+
+        rankLabel.textColor = textColor
+        suitLabel.textColor = textColor
     }
 }

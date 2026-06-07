@@ -26,13 +26,21 @@ class SummaryViewController: UIViewController {
     }
 
     private func setupViews() {
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+
         winnerLabel.font = .systemFont(ofSize: 30, weight: .bold)
         winnerLabel.textAlignment = .center
         winnerLabel.numberOfLines = 0
+        winnerLabel.textColor = .label
 
         scoreLabel.font = .systemFont(ofSize: 22, weight: .semibold)
         scoreLabel.textAlignment = .center
         scoreLabel.numberOfLines = 0
+        scoreLabel.textColor = .label
 
         backButton.setTitle("BACK TO MENU", for: .normal)
         backButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
@@ -47,12 +55,28 @@ class SummaryViewController: UIViewController {
         stackView.spacing = 28
         stackView.translatesAutoresizingMaskIntoConstraints = false
 
-        view.addSubview(stackView)
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-            stackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-            stackView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            contentView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
+
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            stackView.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor, constant: 24),
+            stackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -24),
+            stackView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             backButton.widthAnchor.constraint(equalToConstant: 220),
             backButton.heightAnchor.constraint(equalToConstant: 52)
         ])
