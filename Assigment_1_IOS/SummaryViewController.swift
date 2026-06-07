@@ -1,9 +1,7 @@
-//
+
 //  SummaryViewController.swift
-//  Assigment_1_IOS
-//
-//  Created by Codex on 07/06/2026.
-//
+//  Assigment_2_IOS
+
 
 import UIKit
 
@@ -21,10 +19,12 @@ class SummaryViewController: UIViewController {
         title = "Summary"
         view.backgroundColor = .systemBackground
         navigationItem.hidesBackButton = true
+        // Set up the summary screen UI.
         setupViews()
         updateLabels()
     }
 
+    // Build the winner, score, and back button layout.
     private func setupViews() {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -82,6 +82,7 @@ class SummaryViewController: UIViewController {
         ])
     }
 
+    // Show the winner and winning score.
     private func updateLabels() {
         let userWins = userScore >= pcScore
         let winner = userWins ? userName : "PC"
@@ -90,6 +91,7 @@ class SummaryViewController: UIViewController {
         scoreLabel.text = "Score: \(winnerScore)"
     }
 
+    // Go back to the main screen.
     @objc private func backButtonTapped() {
         navigationController?.popToRootViewController(animated: true)
     }

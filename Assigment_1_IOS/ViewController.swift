@@ -1,9 +1,6 @@
-//
+
 //  ViewController.swift
 //  Assigment_1_IOS
-//
-//  Created by Shani Haker on 07/06/2026.
-//
 
 import UIKit
 import CoreLocation
@@ -54,9 +51,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         title = "Card Game"
         view.backgroundColor = .systemBackground
 
+        // Set up the main screen UI.
         setupViews()
         updateScreen()
 
+        // Start location only after a name already exists.
         if userName == nil {
             statusLabel.text = "Tap Insert Name to begin."
         } else {
@@ -66,9 +65,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Refresh adaptive layout after rotation or size changes.
         updateLayoutForCurrentSize()
     }
 
+    // Build the main screen views and constraints.
     private func setupViews() {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -189,6 +190,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         ])
     }
 
+    // Ask for location permission and start finding the player side.
     private func beginLocationFlow() {
         guard !didStartLocationFlow else { return }
 
@@ -210,6 +212,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         }
     }
 
+    // Show the correct main screen state.
     private func updateScreen() {
         centerStackView.isHidden = false
         centerStackView.isUserInteractionEnabled = true
@@ -248,6 +251,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         updateLayoutForCurrentSize()
     }
 
+    // Ask the user for a name and save it.
     private func askForName() {
         let alert = UIAlertController(title: "Enter your name", message: "Your name is saved for later launches.", preferredStyle: .alert)
         alert.addTextField { textField in
@@ -272,11 +276,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         present(alert, animated: true)
     }
 
+    // Decide if the player is on the east or west side.
     private func updateSide(from longitude: Double) {
         userSide = longitude > middleLongitude ? .east : .west
         updateScreen()
     }
 
+    // Use a fixed location when real location is not available.
     private func useDefaultLocation() {
         locationManager.stopUpdatingLocation()
         updateSide(from: defaultSimulatorLongitude)
@@ -287,6 +293,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         askForName()
     }
 
+    // Navigate to the game screen.
     @objc private func startButtonTapped() {
         guard let userName, let userSide else {
             statusLabel.text = "Please enter your name and allow location first."
@@ -306,6 +313,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         navigationController?.pushViewController(gameViewController, animated: true)
     }
 
+    // Continue location flow after the user answers the permission prompt.
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
@@ -320,6 +328,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         }
     }
 
+    // Use the latest location update to set the player side.
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else {
             useDefaultLocation()
@@ -330,10 +339,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         updateSide(from: location.coordinate.longitude)
     }
 
+    // Fall back when location lookup fails.
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         useDefaultLocation()
     }
 
+    // Update main screen spacing and globe layout for portrait and landscape.
     private func updateLayoutForCurrentSize() {
         let isLandscape = view.bounds.width > view.bounds.height
         let hasSelectedSide = userSide != nil
@@ -415,6 +426,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     }
 }
 
+// Draws the half-globe icons and their side labels.
 class GlobeView: UIView {
     private let title: String
     private let color: UIColor

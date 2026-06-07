@@ -1,9 +1,6 @@
-//
+
 //  GameViewController.swift
-//  Assigment_1_IOS
-//
-//  Created by Codex on 07/06/2026.
-//
+//  Assigment_2_IOS
 
 import UIKit
 
@@ -70,6 +67,7 @@ class GameViewController: UIViewController {
         title = "Game"
         view.backgroundColor = .systemBackground
         navigationItem.hidesBackButton = true
+        // Set up the game screen UI.
         setupViews()
         setupLifecycleNotifications()
     }
@@ -77,6 +75,7 @@ class GameViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
+        // Start or resume gameplay when the screen is visible.
         if currentRound == 0 {
             startGame()
         } else if isPaused && !didFinishGame {
@@ -86,21 +85,25 @@ class GameViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        // Stop the timer when leaving the screen.
         pauseGame()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // Keep cards readable after rotation or size changes.
         updateLayoutForCurrentSize()
     }
 
     deinit {
+        // Clean up timers, delayed work, and music.
         NotificationCenter.default.removeObserver(self)
         timer?.invalidate()
         pendingWorkItem?.cancel()
         audioController.stopMusic()
     }
 
+    // Build the game screen labels, timer, player areas, and constraints.
     private func setupViews() {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -190,6 +193,7 @@ class GameViewController: UIViewController {
         ])
     }
 
+    // Set up one player name and card area.
     private func setupPlayerArea(_ areaView: UIView, title: String, cardView: CardView) {
         let titleLabel = UILabel()
         titleLabel.text = title
@@ -259,6 +263,7 @@ class GameViewController: UIViewController {
         startCountdownTimer()
     }
 
+    // Start the round countdown timer.
     private func startCountdownTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
@@ -302,6 +307,7 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Pick random cards and show them on screen.
     private func dealCardsForCurrentRound() {
         guard let userCard = deck.randomElement(), let pcCard = deck.randomElement() else {
             return
@@ -314,6 +320,7 @@ class GameViewController: UIViewController {
         pcCardView.show(card: pcCard)
     }
 
+    // Add one point to the player with the stronger card.
     private func compareCurrentCards() {
         guard let userCard = currentUserCard, let pcCard = currentPcCard else {
             return
@@ -326,12 +333,14 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Update the round, score, and timer labels.
     private func updateLabels() {
         roundLabel.text = "Round \(currentRound) of \(totalRounds)"
         scoreLabel.text = "\(userName): \(userScore)    PC: \(pcScore)"
         timerLabel.text = "\(countdown)"
     }
 
+    // Navigate to the summary screen.
     private func showSummary() {
         timer?.invalidate()
         pendingWorkItem?.cancel()
@@ -357,6 +366,7 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Start the next game round.
     private func moveToNextRound() {
         guard !isPaused else { return }
 
@@ -365,6 +375,7 @@ class GameViewController: UIViewController {
         startRound()
     }
 
+    // Run delayed game actions safely.
     private func scheduleAfterDelay(_ delay: TimeInterval, action: @escaping () -> Void) {
         pendingWorkItem?.cancel()
 
@@ -412,6 +423,7 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Watch app background and foreground events.
     private func setupLifecycleNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(appDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -427,6 +439,7 @@ class GameViewController: UIViewController {
         }
     }
 
+    // Adjust card sizes and spacing for portrait and landscape.
     private func updateLayoutForCurrentSize() {
         let isLandscape = view.bounds.width > view.bounds.height
         let safeWidth = view.safeAreaLayoutGuide.layoutFrame.width
@@ -469,6 +482,7 @@ class GameViewController: UIViewController {
     }
 }
 
+// Shows one playing card with rank and suit.
 class CardView: UIView {
     private let rankLabel = UILabel()
     private let suitLabel = UILabel()
@@ -486,10 +500,12 @@ class CardView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        // Keep card text readable when the card size changes.
         updateFontsForCurrentSize()
         updateColors()
     }
 
+    // Build the card view UI.
     private func setupViews() {
         layer.cornerRadius = 16
         layer.borderWidth = 2
@@ -515,6 +531,7 @@ class CardView: UIView {
         ])
     }
 
+    // Flip to the new card.
     func show(card: PlayingCard) {
         let updateCard = {
             self.currentSuit = card.suit
@@ -526,6 +543,7 @@ class CardView: UIView {
         UIView.transition(with: self, duration: 0.35, options: .transitionFlipFromLeft, animations: updateCard)
     }
 
+    // Scale the rank and suit text with the card size.
     private func updateFontsForCurrentSize() {
         let rankSize = max(26, min(54, bounds.height * 0.28))
         let suitSize = max(24, min(48, bounds.height * 0.25))
@@ -533,6 +551,7 @@ class CardView: UIView {
         suitLabel.font = .systemFont(ofSize: suitSize, weight: .bold)
     }
 
+    // Use red for hearts and diamonds.
     private func updateColors() {
         backgroundColor = .secondarySystemBackground
         layer.borderColor = UIColor.label.cgColor

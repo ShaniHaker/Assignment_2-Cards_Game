@@ -1,9 +1,7 @@
-//
+
 //  GameAudioController.swift
-//  Assigment_1_IOS
-//
-//  Created by Codex on 07/06/2026.
-//
+//  Assigment_2_IOS
+
 
 import AVFoundation
 import AudioToolbox
@@ -18,6 +16,7 @@ final class GameAudioController {
 
     private init() {}
 
+    // Start background music.
     func startMusic() {
         prepareIfNeeded()
 
@@ -30,24 +29,29 @@ final class GameAudioController {
         }
     }
 
+    // Pause background music.
     func pauseMusic() {
         playerNode.pause()
     }
 
+    // Stop background music and reset the loop.
     func stopMusic() {
         playerNode.stop()
         engine.stop()
         scheduleLoopingMusic()
     }
 
+    // Play a short card sound.
     func playCardSound() {
         AudioServicesPlaySystemSound(1104)
     }
 
+    // Play a sound when the game ends.
     func playGameFinishedSound() {
         AudioServicesPlaySystemSound(1025)
     }
 
+    // Prepare the audio engine only once.
     private func prepareIfNeeded() {
         guard !isPrepared else { return }
 
@@ -62,11 +66,13 @@ final class GameAudioController {
         isPrepared = true
     }
 
+    // Queue the generated music buffer in a loop.
     private func scheduleLoopingMusic() {
         guard let musicBuffer else { return }
         playerNode.scheduleBuffer(musicBuffer, at: nil, options: .loops)
     }
 
+    // Create a simple generated melody for the background music.
     private func makeMusicBuffer(format: AVAudioFormat) -> AVAudioPCMBuffer {
         let sampleRate = format.sampleRate
         let duration = 2.0
