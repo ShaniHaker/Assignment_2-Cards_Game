@@ -67,36 +67,32 @@ At the end of the game, a summary screen displays:
 
 ### Main Screen
 
+<img width="250" height="450" alt="E98B727D-7090-421D-827A-50BA24E0AD59" src="https://github.com/user-attachments/assets/3dcdcc73-3d6a-4534-be68-8e78c99124fd" />
+<img width="250" height="450" alt="97CE9A6B-2C17-406D-9B8E-8595F465789A" src="https://github.com/user-attachments/assets/100a8675-45fa-42c4-b3d4-381ca20b2c71" />
+
 
 
 ### Name Selection Screen
 
-<img width="300" height="400" alt="09D4AA4A-4A5E-4850-9D11-27894D5B50B3" src="https://github.com/user-attachments/assets/2d2c1302-87af-4988-8b93-dd424821d55c" />
+<img width="250" height="450" alt="02622162-C36D-4D67-8732-5DA10985004D" src="https://github.com/user-attachments/assets/2bc77fea-4312-43b6-bb9a-38f353d9fda7" />
+
+
+<img width="250" height="450" alt="09D4AA4A-4A5E-4850-9D11-27894D5B50B3" src="https://github.com/user-attachments/assets/2d2c1302-87af-4988-8b93-dd424821d55c" />
 
 
 ### Game Screen – Portrait
+<img width="250" height="450" alt="848416C3-D99A-47CA-9E23-FED8194B2A92" src="https://github.com/user-attachments/assets/aae86745-a642-414a-a234-a769f2e0037a" />
 
-[Insert Screenshot Here]
-
----
 
 ### Game Screen – Landscape
 
-[Insert Screenshot Here]
+<img width="450" height="250" alt="01DF1BE5-AC32-491E-AB8E-88E713078610" src="https://github.com/user-attachments/assets/9a9c6e70-b822-4ef4-9f88-13ba320c2926" />
 
----
-
-### Dark Mode
-
-[Insert Screenshot Here]
-
----
 
 ### Summary Screen
 
-[Insert Screenshot Here]
+<img width="250" height="450" alt="3415D1C2-DB52-450F-A279-20C1ACA9AC22" src="https://github.com/user-attachments/assets/039f448a-8035-4b16-a2dd-4df85f7a22e1" />
 
----
 
 ## Project Structure
 
@@ -122,17 +118,7 @@ At the end of the game, a summary screen displays:
 
   * Determines East/West side based on user location.
 
----
 
-## Technologies Used
-
-* Swift
-* UIKit
-* Core Location
-* Auto Layout
-* AVFoundation
-
----
 
 ## How to Run
 
@@ -142,37 +128,7 @@ At the end of the game, a summary screen displays:
 4. Allow location access when requested.
 5. Enter a player name and start the game.
 
----
 
-## Assignment Requirements Implemented
-
-✔ UIKit-based application
-
-✔ Multiple View Controllers
-
-✔ Navigation Controller
-
-✔ Auto Layout Constraints
-
-✔ Portrait and Landscape Support
-
-✔ Dark Mode Support
-
-✔ Location Services
-
-✔ Timer Management
-
-✔ Audio Playback
-
-✔ Lifecycle Handling
-
-✔ Game Logic Implementation
-
-✔ Summary Screen
-
----
-
-## Author
 
 Shani Haker
 
