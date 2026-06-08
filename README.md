@@ -71,7 +71,7 @@ At the end of the game, a summary screen displays:
 
 ### Name Selection Screen
 
-<img width="926" height="1812" alt="09D4AA4A-4A5E-4850-9D11-27894D5B50B3" src="https://github.com/user-attachments/assets/2d2c1302-87af-4988-8b93-dd424821d55c" />
+<img width="300" height="400" alt="09D4AA4A-4A5E-4850-9D11-27894D5B50B3" src="https://github.com/user-attachments/assets/2d2c1302-87af-4988-8b93-dd424821d55c" />
 
 
 ### Game Screen – Portrait
